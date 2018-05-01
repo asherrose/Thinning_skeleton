@@ -1,0 +1,183 @@
+#include<fstream>
+using namespace std;
+
+class ThinningSkeleton{
+	public:
+		int numRows, numCols, minVal, maxVal, cycleCount;
+		bool changeFlag=true;
+		int** firstArray;
+		int** secondArray;
+		ThinningSkeleton();
+		void loadImage(string);
+		void zeroFrame();
+		void NorthThinning();
+		void SouthThinning();
+		void WestThinning();
+		void EastThinning();
+		void doThinning(int,int);
+		void copyArray();
+		bool checkCC(int,int);
+		void prettyPrint(ofstream&);
+};
+ThinningSkeleton::ThinningSkeleton(){
+	numRows=numCols=minVal=maxVal=0;
+}
+bool ThinningSkeleton::checkCC(int row, int col){
+	bool cc=true;
+	if (firstArray[row-1][col-1]==1 && firstArray[row][col-1]==0 && firstArray[row-1][col]==0) cc=false;
+	if (firstArray[row+1][col-1]==1 && firstArray[row][col-1]==0 && firstArray[row+1][col]==0) cc=false;
+	if (firstArray[row+1][col+1]==1 && firstArray[row+1][col]==0 && firstArray[row][col+1]==0) cc=false;
+	if (firstArray[row-1][col+1]==1 && firstArray[row-1][col]==0 && firstArray[row][col+1]==0) cc=false;
+	if ((firstArray[row-1][col-1]==1 || firstArray[row-1][col]==1 || firstArray[row-1][col+1]==1) && (firstArray[row+1][col-1]==1 || firstArray[row+1][col]==1 || firstArray[row+1][col+1]==1) 
+	&& firstArray[row][col-1]==0 && firstArray[row][col+1]==0) cc=false;
+	if ((firstArray[row-1][col-1]==1 || firstArray[row][col-1]==1 || firstArray[row+1][col-1]==1) && (firstArray[row-1][col+1]==1 || firstArray[row][col+1]==1 || firstArray[row-1][col+1]==1) 
+	&& firstArray[row-1][col]==0 && firstArray[row+1][col]==0) cc=false;
+	
+	return cc;
+}
+void ThinningSkeleton::prettyPrint(ofstream& out){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			if (firstArray[i][j]==1) out<<1;
+			else out<<" ";
+		}
+		out<<endl;
+	}
+}
+void ThinningSkeleton::doThinning(int row, int col){
+	int oneCount=0;
+	if (firstArray[row-1][col-1]==1) oneCount++;
+	if (firstArray[row-1][col]==1) oneCount++;
+	if (firstArray[row-1][col+1]==1) oneCount++;
+	if (firstArray[row][col-1]==1) oneCount++;
+	if (firstArray[row][col+1]==1) oneCount++;
+	if (firstArray[row+1][col-1]==1) oneCount++;
+	if (firstArray[row+1][col]==1) oneCount++;
+	if (firstArray[row+1][col+1]==1) oneCount++;
+	bool cc=checkCC(row,col);
+	if (oneCount>4 && cc){
+		secondArray[row][col]=0;
+		changeFlag=true;
+	}
+	else secondArray[row][col]=1;
+}
+void ThinningSkeleton::copyArray(){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			firstArray[i][j]=secondArray[i][j];
+		}
+	}
+}
+void ThinningSkeleton::loadImage(string in){
+	ifstream infile(in);
+	infile>>numRows;
+	infile>>numCols;
+	infile>>minVal;
+	infile>>maxVal;
+	firstArray = new int*[numRows+2];
+	secondArray= new int*[numRows+2];
+	for (int i=0; i<numRows+2; i++){
+		firstArray[i]=new int[numCols+2];
+	}
+	for (int i=0; i<numRows+2; i++){
+		secondArray[i]=new int[numCols+2];
+	}
+	for (int i=0; i<numRows+2; i++){
+		for (int j=0; j<numCols+2; j++){
+			secondArray[i][j]=0;
+		}
+	}
+	zeroFrame();
+	int row=1;
+	int col=1;
+	int value;
+	while (infile >> value){
+		firstArray[row][col]=value;
+		if (col==numCols) {
+			col=1;
+			row++;
+		}	
+		else col++;
+	}
+	infile.close();
+}
+void ThinningSkeleton::zeroFrame(){
+	for (int i=0; i<numRows+2; i++){
+		firstArray[i][0]=0;
+		secondArray[i][0]=0;
+		firstArray[i][numCols+1]=0;
+		secondArray[i][numCols+1]=0;
+	}
+	for (int i=0; i<numCols+2; i++){
+		firstArray[0][i]=0;
+		secondArray[0][i]=0;
+		firstArray[numRows+1][i]=0;
+		secondArray[numRows+1][i]=0;
+	}
+}
+void ThinningSkeleton::NorthThinning(){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			if (firstArray[i][j]==1 && firstArray[i-1][j]==0) doThinning(i,j);
+			else secondArray[i][j]=firstArray[i][j];
+		}
+	}
+}
+void ThinningSkeleton::SouthThinning(){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			if (firstArray[i][j]==1 && firstArray[i+1][j]==0) doThinning(i,j);
+			else secondArray[i][j]=firstArray[i][j];
+		}
+	}
+}
+void ThinningSkeleton::EastThinning(){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			if (firstArray[i][j]==1 && firstArray[i][j+1]==0) doThinning(i,j);
+			else secondArray[i][j]=firstArray[i][j];
+		}
+	}
+}
+void ThinningSkeleton::WestThinning(){
+	for (int i=1; i<numRows+1; i++){
+		for (int j=1; j<numCols+1; j++){
+			if (firstArray[i][j]==1 && firstArray[i][j-1]==0) doThinning(i,j);
+			else secondArray[i][j]=firstArray[i][j];
+		}
+	}
+}
+int main(int argc, char* argv[]){
+	ThinningSkeleton thin;
+	thin.loadImage(argv[1]);
+	thin.cycleCount=0;
+	ofstream out1;
+	out1.open(argv[2]);
+	ofstream out2;
+	out2.open(argv[3]);
+	while (thin.changeFlag){
+		if (thin.cycleCount==0 || thin.cycleCount==2 || thin.cycleCount==4 || thin.cycleCount==6) thin.prettyPrint(out2);
+		thin.changeFlag=false;
+		thin.cycleCount++;
+		thin.NorthThinning();
+		thin.copyArray();
+		thin.SouthThinning();
+		thin.copyArray();
+		thin.WestThinning();
+		thin.copyArray();
+		thin.EastThinning();
+		thin.copyArray();
+	}
+	thin.prettyPrint(out2);
+	out1<<thin.numRows<<" "<<thin.numCols<<" "<<thin.minVal<<" "<<thin.maxVal<<endl;
+	for (int i=1; i<thin.numRows+1; i++){
+		for (int j=1; j<thin.numCols+1; j++){
+			out1<<thin.firstArray[i][j];
+		}
+		out1<<endl;
+	}
+	out1.close();
+	out2.close();
+	
+	return 0;
+}
